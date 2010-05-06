@@ -4,7 +4,7 @@ use 5.010000;
 use strict;
 use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use autobox;
 use base 'autobox';
@@ -40,13 +40,12 @@ sub HASH::AUTOLOAD {
         # use Devel::ArgNames; my @argnames = Devel::ArgNames::arg_names(@_ XXX before the shift); my $type = ref $sv; bless peek_my(0)->{'%'.$argnames[0]}, $type;
         $keeper_type = Scalar::Util::blessed $sv;
     }
-    $keeper_type ||= autobox::Bless::_package_with_method($method);
+    $keeper_type ||= autobox::Bless::_package_with_method($method);  # backup plan
     if( $keeper_type ) {
         # warn "won with type " . $keeper_type;
         # $keeper_type->can($method)->($unblessed_hash, @_);  # or even better:
         bless $unblessed_hash, $keeper_type; $unblessed_hash->$method(@_); 
     } else {
-        # argh, okay, just look through the symbol table to find a package with that method
         Carp::confess qq{Can't call method "$method" without a package or object reference, and believe me, I tried};
     }
 }
@@ -87,7 +86,7 @@ __END__
 
 =head1 NAME
 
-autobox::Bless - Call methods in unblessed hashes and hashrefs
+autobox::Bless - Guess which package a hash or hashref probably should be and blessed it
 
 =head1 SYNOPSIS
 
@@ -120,6 +119,31 @@ autobox::Bless - Call methods in unblessed hashes and hashrefs
 Attempts to guess which package an unblessed hash or hashref should be blessed into and
 bless it into that package on the fly.
 
+Guessing is done by the fields (hash keys) present in the unblessed hash versus the fields
+in instances of various objects in memory.
+To be considered a match, the thing must find an object with all of the fields as the
+unblessed hash.
+
+If that heuristic fails, as it would in the SYNOPSIS example where the C<<purple->new>> line
+is commented out, then a less nice strategy is attempted:  all loaded packages are exampled
+for one containing the method called.
+
+Why would anyone want this?  You have a large legacy codebase that makes heavy use of hashes
+for collections of assortments of data and you want to shoehorn an OO-ish API onto it.
+Or perhaps you just want to play with an ultra lazy style of programming.
+
+=head1 TODO
+
+=over 1
+
+=item Mix in the C<< my Foo::Bar $foo >> trick to give it (strong) hints
+
+=item Do whatever Devel::LeakTrace does to figure out where stuff is allocated and assume that datastructures allocated in one package should be blessed into the same package
+
+=item Do better approximate matching; don't require a single instance of an object to exist with all of the fields but instead permit an aggregate of all examples to contain the various different fields
+
+=back
+
 
 =head1 BUGS
 
@@ -129,6 +153,9 @@ method names might clash.
 
 =head1 SEE ALSO
 
+L<autobox>, L<autobox::Core>, L<perl5i>, ...
+
+L<< http://twitter.com/scrottie/status/10706254646 >>
 
 =head1 AUTHOR
 

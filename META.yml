@@ -1,7 +1,7 @@
 --- #YAML:1.0
 name:               autobox-Bless
-version:            0.01
-abstract:           Call methods in unblessed hashes and hashrefs
+version:            0.02
+abstract:           Guess which package a hash or hashref probably should be and blessed it
 author:
     - Scott Walters <scott@slowass.net>
 license:            unknown
